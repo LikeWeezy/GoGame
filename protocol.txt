@@ -1,2 +1,76 @@
+# Get state of a board
 
+Request:
+GET /api/game/{gameId}/status
 
+Response:
+200
+{
+    "boardSize": 19,
+    "boardState": [ # 0 -> empty, 1 -> black, 2 -> white
+        [0, 1, 1, 0...],
+        [0, 1, 0, 0...],
+        ...
+    ],
+    "turn": 1, # even -> white's turn, odd -> black's turn
+    "capturedBlack": 5,
+    "capturedWhite": 3,
+    "status": "PLAYING"
+}
+
+# Make a move
+
+Request:
+POST /api/game/{gameId}/move
+{
+    "playerId": 1, # 1 -> black, 2 -> white
+    "moveType": "PLACE" # or "PASS" or "SURRENDER"
+    "x": 10, # or -1 when not placing
+    "y": 12
+}
+
+Response:
+200
+(no data)
+or
+400
+{
+    "message": "Invalid move: Pole jest już zajęte"
+}
+or
+{
+    "message": "Invalid move: Teraz jest ruch nie tego gracza"
+}
+
+# Create new game
+
+Request:
+POST /api/new_game
+{
+    "boardSize": 19,
+    "requestedColor": "BLACK"
+}
+
+Response:
+200
+{
+    "gameId": " ABC-123"
+    "playerId": 1 # 1 -> black, 2 -> white
+}
+
+# Join game
+
+Request:
+POST /api/game/{gameId}/join
+(no data)
+
+Response:
+200
+{
+    "playerId": 2 # 1 -> black, 2 -> white
+}
+or
+400
+{
+    "message": " Can't join: Gra już się rozpoczęła"
+}
