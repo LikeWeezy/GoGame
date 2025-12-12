@@ -1,0 +1,27 @@
+# Skompilowane klasy i foldery wynikowe
+target/
+*.class
+
+# Maven
+# *.jar
+# *.war
+# *.ear
+# pom.xml.tag
+# pom.xml.bak
+# pom.xml.versionsBackup
+# dependency-reduced-pom.xml
+# settings.xml
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# Eclipse
+.classpath
+.project
+.settings/
+/bin/
+
+# Systemowe pliki
+.DS_Store
+Thumbs.db
