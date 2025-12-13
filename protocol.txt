@@ -15,7 +15,7 @@ Response:
     "turn": 1, # even -> white's turn, odd -> black's turn
     "capturedBlack": 5,
     "capturedWhite": 3,
-    "status": "PLAYING"
+    "status": "PLAYING" # or "CREATING" (when waiting for 2nd player) or "FINISHED"
 }
 
 # Make a move
