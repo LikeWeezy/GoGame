@@ -22,6 +22,8 @@ public class GameFactory {
                 cng.boardSize(),
                 emptyBoard,
                 1,
+                0,
+                0,
                 GameStatus.CREATING,
                 cng.requestedColor().equals("BLACK") ? 1 : 2
         );

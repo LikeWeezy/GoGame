@@ -15,6 +15,8 @@ public class GetGameDataResponseDTOFactory {
                 game.getBoardSize(),
                 deepClone,
                 game.getTurn(),
+                game.getCapturedBlack(),
+                game.getCapturedWhite(),
                 game.getStatus().toString()
         );
     }
