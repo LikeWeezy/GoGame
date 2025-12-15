@@ -2,6 +2,7 @@ package com.example.client;
 
 import com.example.client.HttpClientHelper.GameInitResponse;
 import com.example.client.HttpClientHelper.GameStatusResponse;
+import com.example.client.HttpClientHelper.JoinGameResponse;
 
 import java.io.IOException;
 import java.util.Scanner;
@@ -76,9 +77,9 @@ public class ConsoleUI {
         System.out.print("Podaj ID gry (np. ABC-123): ");
         String gameId = scanner.nextLine();
 
-        GameInitResponse response = client.joinGame(gameId);
+        this.currentGameId = gameId; // powinno byc to samo co wpisane
+        JoinGameResponse response = client.joinGame(gameId);
         
-        this.currentGameId = response.gameId; // powinno byc to samo co wpisane
         this.myPlayerId = response.playerId;
         this.myColorName = "WHITE";
         

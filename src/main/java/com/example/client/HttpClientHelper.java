@@ -55,7 +55,7 @@ public class HttpClientHelper {
     */
 
     // DOLACZANIE DO GRY
-    public GameInitResponse joinGame(String gameId) throws IOException, InterruptedException {
+    public JoinGameResponse joinGame(String gameId) throws IOException, InterruptedException {
         String url = baseUrl + "/api/game/" + gameId + "/join";
         
         // Puste body, bo join nie wymaga danych wejściowych w JSON wg protokołu
@@ -71,7 +71,7 @@ public class HttpClientHelper {
             throw new RuntimeException("Nie udało się dołączyć: " + response.body());
         }
 
-        return mapper.readValue(response.body(), GameInitResponse.class);
+        return mapper.readValue(response.body(), JoinGameResponse.class);
     }
      
     // POBIERANIE STATUSU
@@ -157,9 +157,14 @@ public class HttpClientHelper {
     public static class GameInitResponse {
         public String gameId;
         public int playerId; // 1 lub 2
-        public String status;
         // pusty konstruktor potrzebny dla Jacksona
         public GameInitResponse() {} 
+    }
+
+    // do odbierania danych po dołączeniu do gry
+    public static class JoinGameResponse {
+        public int playerId; // 1 lub 2
+        public JoinGameResponse() {}
     }
 
     // do odbierania pełnego stanu gry
