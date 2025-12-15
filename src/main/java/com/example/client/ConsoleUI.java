@@ -116,7 +116,7 @@ public class ConsoleUI {
             }
 
             // 3. sprawdz czy moja tura
-            if (status.turn == myPlayerId) {
+            if ((status.turn % 2 == 0 && myPlayerId == 2) || (status.turn % 2 == 1 && myPlayerId == 1)) {
                 System.out.println("\n>>> TWOJA TURA (" + myColorName + ") <<<");
                 handleMyMove();
                 lastTurn = -1; // wymus odswieżenie po moim ruchu
