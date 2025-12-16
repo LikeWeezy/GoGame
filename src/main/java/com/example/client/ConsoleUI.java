@@ -75,11 +75,11 @@ public class ConsoleUI {
     // DOLACZANIE
     private void handleJoinGame() throws IOException, InterruptedException {
         System.out.print("Podaj ID gry (np. ABC-123): ");
-        String gameId = scanner.nextLine();
-
-        this.currentGameId = gameId; // powinno byc to samo co wpisane
+        String gameId = scanner.nextLine(); 
+    
         JoinGameResponse response = client.joinGame(gameId);
         
+        this.currentGameId = gameId; 
         this.myPlayerId = response.playerId;
         this.myColorName = "WHITE";
         
@@ -116,7 +116,7 @@ public class ConsoleUI {
             }
 
             // 3. sprawdz czy moja tura
-            if ((status.turn % 2 == 0 && myPlayerId == 2) || (status.turn % 2 == 1 && myPlayerId == 1)) {
+            if (status.turn == myPlayerId) {
                 System.out.println("\n>>> TWOJA TURA (" + myColorName + ") <<<");
                 handleMyMove();
                 lastTurn = -1; // wymus odswieżenie po moim ruchu
@@ -149,7 +149,7 @@ public class ConsoleUI {
                     char colChar = input.charAt(0); // 'A', 'B'...
                     int x = colChar - 'A'; // 'A' -> 0, 'B' -> 1...
                     
-                    // reszta stringa to liczba (uwaga: w tablicy indeksujemy od 0, a ludzie od 1)
+                    
                     int y = Integer.parseInt(input.substring(1)) - 1; 
 
                     client.sendMove(currentGameId, myPlayerId, "PLACE", x, y);
@@ -178,7 +178,7 @@ public class ConsoleUI {
             System.out.printf("%2d ", (y + 1));
             
             for (int x = 0; x < size; x++) {
-                int val = board[x][y]; // uwaga na kolejność X, Y (zalezy jak serwer wysyla, zazwyczaj board[x][y])
+                int val = board[x][y];
                 
                 String symbol = "."; // Puste
                 if (val == 1) symbol = "X"; // Czarny
