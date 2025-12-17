@@ -6,11 +6,12 @@
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.0</version>
-		<relativePath/> </parent>
+		<relativePath/>
+    </parent>
 	<groupId>com.example</groupId>
-	<artifactId>server</artifactId>
+	<artifactId>GoGame</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>server</name>
+	<name>GoGame</name>
 	<description>Go Game Server and Client</description>
 	<properties>
 		<java.version>17</java.version>
