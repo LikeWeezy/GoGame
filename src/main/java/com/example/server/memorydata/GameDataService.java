@@ -1,0 +1,71 @@
+package com.example.server.memorydata;
+
+import com.example.server.memorydata.datatypes.Game;
+import com.example.server.memorydata.datatypes.GameFactory;
+import com.example.server.memorydata.datatypes.GameStatus;
+import com.example.server.memorydata.datatypes.MoveType;
+import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
+import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
+import com.example.server.memorydata.datatypes.dtos.response.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Service
+public class GameDataService {
+    private final Map<String, Game> games = new HashMap<String, Game>();
+    private final GameFactory gameFactory = new GameFactory();
+
+    public GetGameDataResponseDTO getStateOfBoard(String gameId) {
+        if (!this.games.containsKey(gameId)) return null;
+        return GetGameDataResponseDTOFactory.fromGame(this.games.get(gameId));
+    }
+
+    public CreateNewGameResponseDTO createNewGame(CreateNewGameDTO cng) {
+        Game newGame = this.gameFactory.fromCreateNewGameRequest(cng);
+        this.games.put(newGame.getGameId(), newGame);
+        return new CreateNewGameResponseDTO(newGame.getGameId(), newGame.getCreatingPlayerId()); 
+    }
+
+    public ResponseEntity<?> joinGame(String gameId) {
+        if(!this.games.containsKey(gameId)) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+        }
+        return this.games.get(gameId).join();
+    }
+
+    public ResponseEntity<?> makeMove(String gameId, MakeMoveDTO mm) {
+        if (!this.games.containsKey(gameId))
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry"));
+
+        Game game = this.games.get(gameId);
+        
+        if (game.getStatus() != GameStatus.PLAYING)
+            return ResponseEntity.badRequest().body(new ErrorDTO("Gra nie jest w toku"));
+
+        if (mm.playerId() != game.getTurn()) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("To nie Twoja tura!"));
+        }
+
+        if ("PLACE".equals(mm.moveType())) {
+            boolean success = game.placePiece(mm.x(), mm.y(), mm.playerId());
+            if (!success) return ResponseEntity.badRequest().body(new ErrorDTO("Nielegalny ruch"));
+            
+            game.nextTurn(); 
+            return ResponseEntity.ok().build();
+        } 
+        else if ("PASS".equals(mm.moveType())) {
+            game.nextTurn();
+            return ResponseEntity.ok().build();
+        }
+
+        else if ("SURRENDER".equals(mm.moveType())) {
+            game.surrender(); 
+            return ResponseEntity.ok().build();
+        }
+
+        return ResponseEntity.badRequest().body(new ErrorDTO("Nieobsłużony typ ruchu: " + mm.moveType()));
+    }
+}
