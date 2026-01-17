@@ -14,10 +14,13 @@ public class HttpClientHelper {
     private final String baseUrl;
 
     public HttpClientHelper() {
+        this("http://localhost:8080");
+    }
+
+    public HttpClientHelper(String baseUrl) {
         this.client = HttpClient.newHttpClient();
         this.mapper = new ObjectMapper();
-        // zakladamy ze serwer dziala lokalnie na porcie 8080
-        this.baseUrl = "http://localhost:8080"; 
+        this.baseUrl = baseUrl;
     }
 
     // TWORZENIE GRY
@@ -58,7 +61,7 @@ public class HttpClientHelper {
     public JoinGameResponse joinGame(String gameId) throws IOException, InterruptedException {
         String url = baseUrl + "/api/game/" + gameId + "/join";
         
-        // Puste body, bo join nie wymaga danych wejściowych w JSON wg protokołu
+        
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .header("Content-Type", "application/json")

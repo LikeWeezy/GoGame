@@ -47,7 +47,7 @@ public class ConsoleUI {
                         System.out.println("Nieznana opcja.");
                 }
             } catch (Exception e) {
-                System.out.println("BŁĄD: " + e.getMessage());
+                System.out.println("BŁĄD: " + e.getMessage()); 
                 e.printStackTrace(); // do debugowania
             }
         }

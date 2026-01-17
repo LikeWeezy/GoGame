@@ -8,6 +8,7 @@ import com.example.server.memorydata.datatypes.dtos.response.GetGameDataResponse
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+@CrossOrigin(origins = "*") // ROBLOX
 @RestController
 @RequestMapping("/api")
 public class RouteController {
