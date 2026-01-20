@@ -2,7 +2,6 @@ package com.example.server.memorydata;
 
 import com.example.server.memorydata.datatypes.Game;
 import com.example.server.memorydata.datatypes.GameFactory;
-import com.example.server.memorydata.datatypes.GameStatus;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
 import com.example.server.memorydata.datatypes.dtos.response.*;
@@ -40,30 +39,7 @@ public class GameDataService {
             return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry"));
 
         Game game = this.games.get(gameId);
-        
-        if (game.getStatus() != GameStatus.PLAYING)
-            return ResponseEntity.badRequest().body(new ErrorDTO("Gra nie jest w toku"));
 
-        if (mm.playerId() != game.getTurn()) {
-            return ResponseEntity.badRequest().body(new ErrorDTO("To nie Twoja tura!"));
-        }
-
-        if ("PLACE".equals(mm.moveType())) {
-            boolean success = game.placePiece(mm.x(), mm.y(), mm.playerId());
-            if (!success) return ResponseEntity.badRequest().body(new ErrorDTO("Nielegalny ruch"));
-            
-            return ResponseEntity.ok().build();
-        } 
-        else if ("PASS".equals(mm.moveType())) {
-            game.pass();
-            return ResponseEntity.ok().build();
-        }
-
-        else if ("SURRENDER".equals(mm.moveType())) {
-            game.surrender(); 
-            return ResponseEntity.ok().build();
-        }
-
-        return ResponseEntity.badRequest().body(new ErrorDTO("Nieobsłużony typ ruchu: " + mm.moveType()));
+        return game.getStatus().handleMakeMove(game, mm);
     }
 }
