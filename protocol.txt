@@ -42,6 +42,44 @@ or
     "message": "Invalid move: Teraz jest ruch nie tego gracza"
 }
 
+# Negotiate scoring
+
+Request:
+POST /api/game/{gameId}/negotiate
+{
+    "playerId": 1, # 1 -> black, 2 -> white
+    "livingWhite": 0,
+    "deadWhite": 0,
+    "whiteTerritory": 0,
+    "livingBlack": 0,
+    "deadBlack": 0,
+    "blackTerritory": 0
+}
+
+Response:
+200
+(no data)
+or
+400
+{
+    "message": "Invalid move: Gra nie jest w fazie dogadywania"
+}
+
+# Resume game
+
+Request:
+POST /api/game/{gameId}/resume
+(no data)
+
+Response:
+200
+(no data)
+or
+400
+{
+    "message": "Invalid request: Gra nie jest w fazie dogadywania"
+}
+
 # Create new game
 
 Request:

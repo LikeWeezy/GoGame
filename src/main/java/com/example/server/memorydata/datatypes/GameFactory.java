@@ -23,7 +23,10 @@ public class GameFactory {
                 0,
                 GameStatus.CREATING,
                 cng.requestedColor().equals("BLACK") ? 1 : 2,
-                false
+                false,
+                0,
+                null,
+                null
         );
         ++idAutoincrement;
         return newGame;

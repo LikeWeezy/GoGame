@@ -1,5 +1,6 @@
 package com.example.server.memorydata.datatypes;
 
+import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.ErrorDTO;
 import com.example.server.memorydata.datatypes.dtos.response.JoinGameResponseDTO;
 import org.springframework.http.ResponseEntity;
@@ -17,9 +18,13 @@ public class Game {
     private GameStatus status;
     private final int creatingPlayerId;
     private boolean justPassed;
-    private int winnerId = 0;
+    private int winnerId;
+    private Negotiation whitesNegotiation;
+    private Negotiation blacksNegotiation;
 
-    public Game(String gameId, int boardSize, int[][] boardState, int[][] previousBoardState, int turn, int capturedBlack, int capturedWhite, GameStatus status, int creatingPlayerId, boolean justPassed) {
+    public Game(String gameId, int boardSize, int[][] boardState, int[][] previousBoardState, int turn,
+                int capturedBlack, int capturedWhite, GameStatus status, int creatingPlayerId, boolean justPassed,
+                int winnerId, Negotiation whitesNegotiation, Negotiation blacksNegotiation) {
         this.gameId = gameId;
         this.boardSize = boardSize;
         this.boardState = boardState;
@@ -30,6 +35,9 @@ public class Game {
         this.status = status;
         this.creatingPlayerId = creatingPlayerId;
         this.justPassed = justPassed;
+        this.winnerId = winnerId;
+        this.whitesNegotiation = whitesNegotiation;
+        this.blacksNegotiation = blacksNegotiation;
     }
 
     public String getGameId() { return this.gameId; }
@@ -52,13 +60,48 @@ public class Game {
 
     public void pass() {
         if(this.justPassed) {
-            this.status = GameStatus.FINISHED;
-            this.winnerId = (this.capturedWhite > this.capturedBlack) ? 1 : 2;
+            this.status = GameStatus.PAUSED;
+            this.justPassed = false;
         }
         else {
             this.justPassed = true;
-            this.nextTurn();
         }
+        this.nextTurn();
+    }
+
+    public ResponseEntity<?> submitNegotiation(NegotiateDTO negotiateDTO) {
+        if(!(negotiateDTO.playerId() == 1 || negotiateDTO.playerId() == 2)) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Złe ID gracza w próbie dogadania"));
+        }
+        Negotiation negotiation = Negotiation.fromNegotiateDTO(negotiateDTO);
+        if(negotiateDTO.playerId() == 1) {
+            this.blacksNegotiation = negotiation;
+        }
+        else {
+            this.whitesNegotiation = negotiation;
+        }
+        if(this.whitesNegotiation != null &&
+                this.blacksNegotiation != null &&
+                Negotiation.areNegotiationsEqual(this.whitesNegotiation, this.blacksNegotiation)) {
+            this.chooseWinner();
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    public void resume() {
+        this.whitesNegotiation = null;
+        this.blacksNegotiation = null;
+        this.status = GameStatus.PLAYING;
+    }
+
+    public void chooseWinner() {
+        Negotiation negotiation = this.whitesNegotiation;
+        this.capturedWhite += negotiation.deadWhite();
+        int whitesPoints = negotiation.whiteTerritory() -  this.capturedWhite;
+        this.capturedBlack += negotiation.deadBlack();
+        int blacksPoints = negotiation.blackTerritory() - this.capturedBlack;
+        this.winnerId = (whitesPoints > blacksPoints) ? 2 : 1;
+        this.status = GameStatus.FINISHED;
     }
 
     public boolean placePiece(int x, int y, int id) {

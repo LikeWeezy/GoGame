@@ -4,6 +4,7 @@ import com.example.server.memorydata.datatypes.Game;
 import com.example.server.memorydata.datatypes.GameFactory;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
+import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -35,11 +36,26 @@ public class GameDataService {
     }
 
     public ResponseEntity<?> makeMove(String gameId, MakeMoveDTO mm) {
-        if (!this.games.containsKey(gameId))
-            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry"));
-
-        Game game = this.games.get(gameId);
-
+        Game game = this.games.getOrDefault(gameId, null);
+        if(game == null) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+        }
         return game.getStatus().handleMakeMove(game, mm);
+    }
+
+    public ResponseEntity<?> negotiate(String gameId, NegotiateDTO negotiateDTO) {
+        Game game = this.games.getOrDefault(gameId, null);
+        if(game == null) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+        }
+        return game.getStatus().handleNegotiation(game, negotiateDTO);
+    }
+
+    public ResponseEntity<?> resume(String gameId) {
+        Game game = this.games.getOrDefault(gameId, null);
+        if(game == null) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+        }
+        return game.getStatus().handleResuming(game);
     }
 }
