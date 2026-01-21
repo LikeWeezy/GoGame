@@ -12,7 +12,8 @@ public class GetGameDataResponseDTOFactory {
                 game.getTurn(),
                 game.getCapturedBlack(),
                 game.getCapturedWhite(),
-                game.getStatus().toString()
+                game.getStatus().toString(),
+                game.getWinnerId()
         );
     }
 }

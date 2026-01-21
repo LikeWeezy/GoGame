@@ -1,7 +1,9 @@
 package com.example.server.memorydata.datatypes;
 
+import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.ErrorDTO;
+import com.example.server.memorydata.datatypes.dtos.response.GetNegotiationDetailsResponseDTO;
 import com.example.server.memorydata.datatypes.dtos.response.JoinGameResponseDTO;
 import org.springframework.http.ResponseEntity;
 
@@ -96,11 +98,9 @@ public class Game {
 
     public void chooseWinner() {
         Negotiation negotiation = this.whitesNegotiation;
-        this.capturedWhite += negotiation.deadWhite();
-        int whitesPoints = negotiation.whiteTerritory() -  this.capturedWhite;
-        this.capturedBlack += negotiation.deadBlack();
-        int blacksPoints = negotiation.blackTerritory() - this.capturedBlack;
-        this.winnerId = (whitesPoints > blacksPoints) ? 2 : 1;
+        int whitesPoints = negotiation.whiteTerritory() - negotiation.deadWhite() -  this.capturedWhite;
+        int blacksPoints = negotiation.blackTerritory() - negotiation.deadBlack() - this.capturedBlack;
+        this.winnerId = (blacksPoints > whitesPoints) ? 1 : 2;
         this.status = GameStatus.FINISHED;
     }
 
@@ -292,5 +292,15 @@ public class Game {
             System.arraycopy(this.boardState[i], 0, otpt[i], 0, this.boardState[0].length);
         }
         return otpt;
+    }
+
+    public GetNegotiationDetailsResponseDTO getNegotiationDetails(GetNegotiationDetailsDTO gnd) {
+        int opponentId = gnd.playerId() == 1 ? 2 : 1;
+        if(opponentId == 1) {
+            return GetNegotiationDetailsResponseDTO.from(this.blacksNegotiation);
+        }
+        else {
+            return GetNegotiationDetailsResponseDTO.from(this.whitesNegotiation);
+        }
     }
 }

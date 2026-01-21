@@ -2,10 +2,12 @@ package com.example.server;
 
 import com.example.server.memorydata.GameDataService;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
+import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
 import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.CreateNewGameResponseDTO;
 import com.example.server.memorydata.datatypes.dtos.response.GetGameDataResponseDTO;
+import com.example.server.memorydata.datatypes.dtos.response.GetNegotiationDetailsResponseDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,5 +49,11 @@ public class RouteController {
     @PostMapping("/game/{gameId}/resume")
     public ResponseEntity<?> resume(@PathVariable("gameId") String gameId) {
         return this.gameDataService.resume(gameId);
+    }
+
+    @PostMapping("/game/{gameId}/get_negotiation_details")
+    public GetNegotiationDetailsResponseDTO getNegotiationDetails(@PathVariable("gameId") String gameId,
+                                                                  @RequestBody GetNegotiationDetailsDTO gnd) {
+        return this.gameDataService.getNegotiationDetails(gameId, gnd);
     }
 }

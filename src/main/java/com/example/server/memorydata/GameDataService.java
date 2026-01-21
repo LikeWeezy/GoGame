@@ -3,6 +3,7 @@ package com.example.server.memorydata;
 import com.example.server.memorydata.datatypes.Game;
 import com.example.server.memorydata.datatypes.GameFactory;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
+import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
 import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.*;
@@ -57,5 +58,11 @@ public class GameDataService {
             return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
         }
         return game.getStatus().handleResuming(game);
+    }
+
+    public GetNegotiationDetailsResponseDTO getNegotiationDetails(String gameId, GetNegotiationDetailsDTO gnd) {
+        Game game = this.games.getOrDefault(gameId, null);
+        if(game == null) return GetNegotiationDetailsResponseDTO.empty();
+        else return game.getNegotiationDetails(gnd);
     }
 }

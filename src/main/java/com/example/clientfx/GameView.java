@@ -11,6 +11,7 @@ import javafx.scene.layout.*;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
+import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -47,7 +48,42 @@ public class GameView {
     private final Button refreshBtn = new Button("Odśwież teraz");
     private final Button backBtn = new Button("Powrót do menu");
 
-    
+    // This player
+    private final Label thisPlayersNegotiationLabel = new Label("Twoja propozycja:");
+
+    private final Label thisPlayersLivingWhiteLabel = new Label("Żywe białe kamienie");
+    private final TextArea thisPlayersLivingWhiteTextArea = new TextArea();
+    private final Label thisPlayersDeadWhiteLabel = new Label("Martwe białe kamienie");
+    private final TextArea thisPlayersDeadWhiteTextArea = new TextArea();
+    private final Label thisPlayersWhiteTerritoryLabel = new Label("Terytorium białego");
+    private final TextArea thisPlayersWhiteTerritoryTextArea = new TextArea();
+    private final Label thisPlayersLivingBlackLabel = new Label("Żywe czarne kamienie");
+    private final TextArea thisPlayersLivingBlackTextArea = new TextArea();
+    private final Label thisPlayersDeadBlackLabel = new Label("Martwe czarne kamienie");
+    private final TextArea thisPlayersDeadBlackTextArea = new TextArea();
+    private final Label thisPlayersBlackTerritoryLabel = new Label("Terytorium czarnego");
+    private final TextArea thisPlayersBlackTerritoryTextArea = new TextArea();
+
+    private final Button submitNegotiationBtn = new Button("Wyślij propozycję");
+
+    // Opponent
+    private final Label opponentsNegotiationLabel = new Label("Propozycja przeciwnika:");
+
+    private final Label opponentsLivingWhiteLabel = new Label("Żywe białe kamienie");
+    private final TextArea opponentsLivingWhiteTextArea = new TextArea();
+    private final Label opponentsDeadWhiteLabel = new Label("Martwe białe kamienie");
+    private final TextArea opponentsDeadWhiteTextArea = new TextArea();
+    private final Label opponentsWhiteTerritoryLabel = new Label("Terytorium białego");
+    private final TextArea opponentsWhiteTerritoryTextArea = new TextArea();
+    private final Label opponentsLivingBlackLabel = new Label("Żywe czarne kamienie");
+    private final TextArea opponentsLivingBlackTextArea = new TextArea();
+    private final Label opponentsDeadBlackLabel = new Label("Martwe czarne kamienie");
+    private final TextArea opponentsDeadBlackTextArea = new TextArea();
+    private final Label opponentsBlackTerritoryLabel = new Label("Terytorium czarnego");
+    private final TextArea opponentsBlackTerritoryTextArea = new TextArea();
+
+    private volatile boolean pollNegotiations = false;
+
     private final ScheduledExecutorService poller = Executors.newSingleThreadScheduledExecutor();
 
     
@@ -103,9 +139,57 @@ public class GameView {
         main.setTop(top);
 
         // right
+
+        // This player
+        setupNegotiationEntry(thisPlayersLivingWhiteTextArea, true);
+        setupNegotiationEntry(thisPlayersDeadWhiteTextArea, true);
+        setupNegotiationEntry(thisPlayersWhiteTerritoryTextArea, true);
+        setupNegotiationEntry(thisPlayersLivingBlackTextArea, true);
+        setupNegotiationEntry(thisPlayersDeadBlackTextArea, true);
+        setupNegotiationEntry(thisPlayersBlackTerritoryTextArea, true);
+
+        // Opponent
+        setupNegotiationEntry(opponentsLivingWhiteTextArea, false);
+        setupNegotiationEntry(opponentsDeadWhiteTextArea, false);
+        setupNegotiationEntry(opponentsWhiteTerritoryTextArea, false);
+        setupNegotiationEntry(opponentsLivingBlackTextArea, false);
+        setupNegotiationEntry(opponentsDeadBlackTextArea, false);
+        setupNegotiationEntry(opponentsBlackTerritoryTextArea, false);
+
+        HBox negotiations = new HBox(2);
+
+        VBox thisPlayersNegotiation = new VBox(8);
+
+        thisPlayersNegotiation.getChildren().addAll(
+                thisPlayersNegotiationLabel,
+                thisPlayersLivingWhiteLabel, thisPlayersLivingWhiteTextArea,
+                thisPlayersDeadWhiteLabel, thisPlayersDeadWhiteTextArea,
+                thisPlayersWhiteTerritoryLabel, thisPlayersWhiteTerritoryTextArea,
+                thisPlayersLivingBlackLabel, thisPlayersLivingBlackTextArea,
+                thisPlayersDeadBlackLabel, thisPlayersDeadBlackTextArea,
+                thisPlayersBlackTerritoryLabel, thisPlayersBlackTerritoryTextArea,
+                submitNegotiationBtn
+        );
+
+        VBox opponentsNegotiation = new VBox(7);
+
+        opponentsNegotiation.getChildren().addAll(
+                opponentsNegotiationLabel,
+                opponentsLivingWhiteLabel, opponentsLivingWhiteTextArea,
+                opponentsDeadWhiteLabel, opponentsDeadWhiteTextArea,
+                opponentsWhiteTerritoryLabel, opponentsWhiteTerritoryTextArea,
+                opponentsLivingBlackLabel, opponentsLivingBlackTextArea,
+                opponentsDeadBlackLabel, opponentsDeadBlackTextArea,
+                opponentsBlackTerritoryLabel, opponentsBlackTerritoryTextArea
+        );
+
+        negotiations.getChildren().addAll(thisPlayersNegotiation, opponentsNegotiation);
+
         VBox right = new VBox(10);
+        HBox actionButtons = new HBox(4);
+        actionButtons.getChildren().addAll(passBtn, surrenderBtn, refreshBtn);
         right.setPadding(new Insets(10));
-        right.getChildren().addAll(passBtn, surrenderBtn, refreshBtn, new Separator(), backBtn);
+        right.getChildren().addAll(backBtn, new Separator(), actionButtons, new Separator(), negotiations);
         main.setRight(right);
 
         // bottom
@@ -133,6 +217,8 @@ public class GameView {
             stopPolling();
             onBackToMenu.run();
         });
+
+        submitNegotiationBtn.setOnAction(e -> sendNegotiationAsync());
     }
 
     private void ensureBoardBuilt(int size) {
@@ -218,9 +304,17 @@ public class GameView {
             try {
                 HttpClientHelper.GameStatusResponse st = session.client().getStatus(session.gameId());
                 Platform.runLater(() -> applyStatus(st));
+                if(pollNegotiations) {
+                    HttpClientHelper.GetNegotiationDetailsRequest gnd =
+                            new HttpClientHelper.GetNegotiationDetailsRequest(session.myPlayerId());
+                    HttpClientHelper.GetNegotiationDetailsResponse neg =
+                            session.client().askForNegotiation(session.gameId(), gnd);
+                    System.out.println("ok2");
+                    Platform.runLater(() -> applyEnemysNegotiationOffer(neg));
+                }
             } catch (Exception ex) {
                 Platform.runLater(() -> {
-                    log("Błąd odświeżania: " + ex.getClass().getSimpleName());
+                    log("Błąd odświeżania: " + ex.getMessage());
                     statusLabel.setText("status: (błąd połączenia)");
                 });
             }
@@ -235,6 +329,29 @@ public class GameView {
                 refreshAsync();
             } catch (Exception ex) {
                 Platform.runLater(() -> log("Błąd ruchu: " + ex.getMessage()));
+            }
+        });
+    }
+
+    private void sendNegotiationAsync() {
+        ioPool.submit(() -> {
+            try {
+                HttpClientHelper.NegotiateRequest nr = new HttpClientHelper.NegotiateRequest(
+                        session.myPlayerId(),
+                        Integer.parseInt(thisPlayersLivingWhiteTextArea.getText()),
+                        Integer.parseInt(thisPlayersDeadWhiteTextArea.getText()),
+                        Integer.parseInt(thisPlayersWhiteTerritoryTextArea.getText()),
+                        Integer.parseInt(thisPlayersLivingBlackTextArea.getText()),
+                        Integer.parseInt(thisPlayersDeadBlackTextArea.getText()),
+                        Integer.parseInt(thisPlayersBlackTerritoryTextArea.getText())
+                );
+                session.client().sendNegotiation(session.gameId(), nr);
+            }
+            catch(NumberFormatException nfe) {
+                Platform.runLater(() -> log("Zła wartość w propozycji: " + nfe.getMessage()));
+            }
+            catch(IOException | InterruptedException e) {
+                Platform.runLater(() -> log("Błąd w wysyłaniu wiadomości: " + e.getMessage()));
             }
         });
     }
@@ -269,9 +386,26 @@ public class GameView {
 
         if ("FINISHED".equals(st.status) && !finishedShown) {
             finishedShown = true;
+            pollNegotiations = false;
             stopPolling();
             showFinishedOverlay(st);
         }
+        else if("PAUSED".equals(st.status) && !pollNegotiations) {
+            pollNegotiations = true;
+        }
+        else {
+            pollNegotiations = false;
+        }
+    }
+
+
+    private void applyEnemysNegotiationOffer(HttpClientHelper.GetNegotiationDetailsResponse gndres) {
+        opponentsLivingWhiteTextArea.setText(gndres.livingWhite + "");
+        opponentsDeadWhiteTextArea.setText(gndres.deadWhite + "");
+        opponentsWhiteTerritoryTextArea.setText(gndres.whiteTerritory + "");
+        opponentsLivingBlackTextArea.setText(gndres.livingBlack + "");
+        opponentsDeadBlackTextArea.setText(gndres.deadBlack + "");
+        opponentsBlackTerritoryTextArea.setText(gndres.blackTerritory + "");
     }
 
     
@@ -299,12 +433,18 @@ public class GameView {
         title.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
 
         
-        String winner = (st.capturedBlack > st.capturedWhite) ? "WHITE" : "BLACK";
+        String winner = (st.winnerId == 1) ? "BLACK" : "WHITE";
 
         Label info = new Label(
-                "Zbite czarne: " + st.capturedBlack +
-                "\nZbite białe: " + st.capturedWhite +
-                "\n\nWinner: " + winner
+                "Zbite białe: " + st.capturedWhite +
+                        "\nŻyjące białe: " + thisPlayersLivingWhiteTextArea.getText() +
+                        "\nMartwe białe: " + thisPlayersDeadWhiteTextArea.getText() +
+                        "\nTerytorium białego: " + thisPlayersWhiteTerritoryTextArea.getText() +
+                        "\n\nZbite czarne: " + st.capturedBlack +
+                        "\nŻyjące czarne: " + thisPlayersLivingBlackTextArea.getText() +
+                        "\nMartwe czarne: " + thisPlayersDeadBlackTextArea.getText() +
+                        "\nTerytorium czarnego: " + thisPlayersBlackTerritoryTextArea.getText() +
+                        "\n\n\nZwycięzca: " + winner
         );
         info.setStyle("-fx-font-size: 14px;");
 
@@ -338,5 +478,11 @@ public class GameView {
 
     private void log(String msg) {
         logArea.appendText(msg + "\n");
+    }
+
+    private static void setupNegotiationEntry(TextArea ta, boolean editable) {
+        ta.setEditable(editable);
+        ta.setPrefRowCount(1);
+        ta.setPrefColumnCount(2);
     }
 }

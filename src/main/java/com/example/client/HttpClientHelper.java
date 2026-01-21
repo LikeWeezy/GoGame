@@ -142,6 +142,48 @@ public class HttpClientHelper {
         }
     }
 
+    public void sendNegotiation(String gameId, NegotiateRequest nr) throws IOException, InterruptedException {
+        String url = baseUrl + "/api/game/" + gameId + "/negotiate";
+        String jsonBody = mapper.writeValueAsString(nr);
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString(jsonBody))
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            // rzucamy wyjatek jeśli ruch jest niepoprawny (np pole zajete)
+            // Dzieki temu w ConsoleUI mozna zlapac ten wyjatek i wyswietlic komunikat
+            throw new RuntimeException(response.body());
+        }
+    }
+
+    public GetNegotiationDetailsResponse askForNegotiation(String gameId, GetNegotiationDetailsRequest gnd) throws IOException, InterruptedException {
+        String url = baseUrl + "/api/game/" + gameId + "/get_negotiation_details";
+        String jsonBody = mapper.writeValueAsString(gnd);
+        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder();
+        requestBuilder.uri(URI.create(url));
+        requestBuilder.header("Content-Type", "application/json");
+        requestBuilder.POST(HttpRequest.BodyPublishers.ofString(jsonBody));
+        HttpRequest request = requestBuilder.build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        System.out.println("ok1");
+
+        if (response.statusCode() != 200) {
+            // rzucamy wyjatek jeśli ruch jest niepoprawny (np pole zajete)
+            // Dzieki temu w ConsoleUI mozna zlapac ten wyjatek i wyswietlic komunikat
+            throw new RuntimeException(response.body());
+        }
+        GetNegotiationDetailsResponse output;
+
+        output = mapper.readValue(response.body(), GetNegotiationDetailsResponse.class);
+
+        return output;
+    }
+
     // klasy DTO (Data Transfer Objects)
     // mapowanie json -> java
 
@@ -179,6 +221,7 @@ public class HttpClientHelper {
         public int capturedBlack;
         public int capturedWhite;
         public String status;      // PLAYING, FINISHED
+        public int winnerId;
         
         public GameStatusResponse() {}
     }
@@ -196,5 +239,45 @@ public class HttpClientHelper {
             this.x = x;
             this.y = y;
         }
+    }
+
+    // Do dogadywania wynikow
+    public static class NegotiateRequest {
+        public int playerId;
+        public int livingWhite;
+        public int deadWhite;
+        public int whiteTerritory;
+        public int livingBlack;
+        public int deadBlack;
+        public int blackTerritory;
+
+        public NegotiateRequest(int playerId, int livingWhite, int deadWhite, int whiteTerritory,
+                                int livingBlack, int deadBlack, int blackTerritory) {
+            this.playerId = playerId;
+            this.livingWhite = livingWhite;
+            this.deadWhite = deadWhite;
+            this.whiteTerritory = whiteTerritory;
+            this.livingBlack = livingBlack;
+            this.deadBlack = deadBlack;
+            this.blackTerritory = blackTerritory;
+        }
+    }
+
+    public static class GetNegotiationDetailsRequest {
+        public int playerId;
+        public GetNegotiationDetailsRequest(int playerId) {
+            this.playerId = playerId;
+        }
+    }
+
+    public static class GetNegotiationDetailsResponse {
+        public int livingWhite;
+        public int deadWhite;
+        public int whiteTerritory;
+        public int livingBlack;
+        public int deadBlack;
+        public int blackTerritory;
+
+        public GetNegotiationDetailsResponse() {}
     }
 }

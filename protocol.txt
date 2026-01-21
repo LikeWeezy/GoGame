@@ -15,7 +15,8 @@ Response:
     "turn": 1, # even -> white's turn, odd -> black's turn
     "capturedBlack": 5,
     "capturedWhite": 3,
-    "status": "PLAYING"
+    "status": "PLAYING",
+    "winnerId": 1
 }
 
 # Make a move
@@ -63,6 +64,25 @@ or
 400
 {
     "message": "Invalid move: Gra nie jest w fazie dogadywania"
+}
+
+# Get enemy's negotiation offer
+
+Request:
+POST /api/game/{gameId}/get_negotiation_details
+{
+    "playerId": 1 # 1 -> Black is asking - get white's offer, 2 -> the opposite
+}
+
+Response:
+200
+{
+    "livingWhite": 0,
+    "deadWhite": 0,
+    "whiteTerritory": 0,
+    "livingBlack": 0,
+    "deadBlack": 0,
+    "blackTerritory": 0
 }
 
 # Resume game
