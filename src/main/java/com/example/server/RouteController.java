@@ -11,10 +11,15 @@ import com.example.server.memorydata.datatypes.dtos.response.GetNegotiationDetai
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Controller that redirects incoming requests to appropriate functions
+ * in the GameDataService.
+ */
 @CrossOrigin(origins = "*") // ROBLOX
 @RestController
 @RequestMapping("/api")
 public class RouteController {
+    /** Data service for storing and processing games. */
     private final GameDataService gameDataService;
 
     public RouteController(GameDataService gameDataService) {
