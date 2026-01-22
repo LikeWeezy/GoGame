@@ -34,7 +34,7 @@ public class GameDataService {
      */
     public GetGameDataResponseDTO getStateOfBoard(String gameId) {
         if (!this.games.containsKey(gameId)) return null;
-        return GetGameDataResponseDTOFactory.fromGame(this.games.get(gameId));
+        return GetGameDataResponseDTO.fromGame(this.games.get(gameId));
     }
 
     /**

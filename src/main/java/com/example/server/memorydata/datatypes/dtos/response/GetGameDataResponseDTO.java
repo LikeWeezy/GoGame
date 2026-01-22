@@ -1,5 +1,7 @@
 package com.example.server.memorydata.datatypes.dtos.response;
 
+import com.example.server.memorydata.datatypes.Game;
+
 /**
  * Response DTO containing a game's data.
  * @param gameId ID of the game
@@ -12,4 +14,23 @@ package com.example.server.memorydata.datatypes.dtos.response;
  * @param status Denotes the current stage of the game
  * @param winnerId ID of the player that won the game. 0 if the game is not over yet.
  */
-public record GetGameDataResponseDTO(String gameId, int boardSize, int[][] boardState, int turn, int capturedBlack, int capturedWhite, String status, int winnerId) {}
+public record GetGameDataResponseDTO(String gameId, int boardSize, int[][] boardState, int turn, int capturedBlack, int capturedWhite, String status, int winnerId) {
+    /**
+     * Create a response DTO with its fields corresponding to the game's data.
+     * @param game Game from which to get data
+     * @return Response DTO with the game's data.
+     */
+    public static GetGameDataResponseDTO fromGame(Game game) {
+        int[][] deepClone = game.deepCloneBoardState();
+        return new GetGameDataResponseDTO(
+                game.getGameId(),
+                game.getBoardSize(),
+                deepClone,
+                game.getTurn(),
+                game.getCapturedBlack(),
+                game.getCapturedWhite(),
+                game.getStatus().toString(),
+                game.getWinnerId()
+        );
+    }
+}
