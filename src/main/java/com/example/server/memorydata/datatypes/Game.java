@@ -31,7 +31,7 @@ public class Game {
         this.boardSize = boardSize;
         this.boardState = boardState;
         this.previousBoardState = previousBoardState;
-        this.turn = (turn == 0) ? 1 : turn;
+        this.turn = turn;
         this.capturedBlack = capturedBlack;
         this.capturedWhite = capturedWhite;
         this.status = status;
