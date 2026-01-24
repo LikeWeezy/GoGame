@@ -184,7 +184,7 @@ public class Game {
     }
 
     /** End the game and set winnerId to the player with more points. */
-    public void chooseWinner() {
+    private void chooseWinner() {
         Negotiation negotiation = this.whitesNegotiation;
         int whitesPoints = negotiation.whiteTerritory() - negotiation.deadWhite() -  this.capturedWhite;
         int blacksPoints = negotiation.blackTerritory() - negotiation.deadBlack() - this.capturedBlack;
@@ -283,7 +283,7 @@ public class Game {
      * @param y The row of the checked position
      * @return The number of empty fields adjacent to the given position.
      */
-    public static int calculateLiberties(int[][] boardState, int x, int y) {
+    private static int calculateLiberties(int[][] boardState, int x, int y) {
         int id = boardState[x][y];
         if (id <= 0) return -1;
         int liberties = 0;
