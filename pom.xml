@@ -10,7 +10,7 @@
     </parent>
 	<groupId>com.example</groupId>
 	<artifactId>GoGame</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.2-SNAPSHOT</version>
 	<name>GoGame</name>
 	<description>Go Game Server and Client</description>
 	<properties>
@@ -73,7 +73,7 @@
                         </goals>
                         <configuration>
                             <classifier>client</classifier>
-                            <mainClass>com.example.client.ClientApplication</mainClass>
+                            <mainClass>com.example.clientfx.FxClientApplication</mainClass>
                         </configuration>
                     </execution>
                 </executions>
