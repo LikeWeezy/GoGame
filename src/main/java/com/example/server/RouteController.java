@@ -1,12 +1,14 @@
 package com.example.server;
 
 import com.example.server.memorydata.GameDataService;
+import com.example.server.memorydata.databaselayer.DatabaseService;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
 import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
 import com.example.server.memorydata.datatypes.dtos.request.NegotiateDTO;
 import com.example.server.memorydata.datatypes.dtos.response.CreateNewGameResponseDTO;
 import com.example.server.memorydata.datatypes.dtos.response.GetGameDataResponseDTO;
+import com.example.server.memorydata.datatypes.dtos.response.GetGameHistoryResponseDTO;
 import com.example.server.memorydata.datatypes.dtos.response.GetNegotiationDetailsResponseDTO;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,9 +23,12 @@ import org.springframework.web.bind.annotation.*;
 public class RouteController {
     /** Data service for storing and processing games. */
     private final GameDataService gameDataService;
+    /** Service for communicating with the database. */
+    private final DatabaseService databaseService;
 
-    public RouteController(GameDataService gameDataService) {
+    public RouteController(GameDataService gameDataService, DatabaseService databaseService) {
         this.gameDataService = gameDataService;
+        this.databaseService = databaseService;
     }
 
     @GetMapping("/game/{gameId}/status")
@@ -33,7 +38,9 @@ public class RouteController {
 
     @PostMapping("/new_game")
     public CreateNewGameResponseDTO createNewGame(@RequestBody CreateNewGameDTO cng) {
-        return this.gameDataService.createNewGame(cng);
+        CreateNewGameResponseDTO cngr = this.gameDataService.createNewGame(cng);
+        databaseService.saveGame(cngr.gameId(), cng.boardSize());
+        return cngr;
     }
 
     @PostMapping("/game/{gameId}/join")
@@ -43,7 +50,11 @@ public class RouteController {
 
     @PostMapping("/game/{gameId}/move")
     public ResponseEntity<?> makeMove(@PathVariable("gameId") String gameId, @RequestBody MakeMoveDTO mm) {
-        return this.gameDataService.makeMove(gameId, mm);
+        ResponseEntity<?> responseEntity = this.gameDataService.makeMove(gameId, mm);
+        if(responseEntity.getStatusCode().value() == 200) {
+            databaseService.saveMove(gameId, mm);
+        }
+        return responseEntity;
     }
 
     @PostMapping("/game/{gameId}/negotiate")
@@ -60,5 +71,10 @@ public class RouteController {
     public GetNegotiationDetailsResponseDTO getNegotiationDetails(@PathVariable("gameId") String gameId,
                                                                   @RequestBody GetNegotiationDetailsDTO gnd) {
         return this.gameDataService.getNegotiationDetails(gameId, gnd);
+    }
+
+    @GetMapping("/game/{gameId}/get_game_history")
+    public GetGameHistoryResponseDTO getGameHistoryResponse(@PathVariable("gameId") String gameId) {
+        return databaseService.getGameHistory(gameId);
     }
 }

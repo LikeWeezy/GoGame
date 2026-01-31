@@ -25,10 +25,13 @@ public class MainMenuView {
 
     private final TextField joinGameIdField = new TextField();
 
+    private final TextField replayGameIdField = new TextField();
+
     private final Label statusLabel = new Label("");
 
     private final Button createBtn = new Button("Nowa gra");
     private final Button joinBtn = new Button("Dołącz do gry");
+    private final Button replayBtn = new Button("Odtwórz grę");
 
     public MainMenuView(ExecutorService ioPool, Consumer<GameSession> onSessionReady) {
         this.ioPool = ioPool;
@@ -38,6 +41,7 @@ public class MainMenuView {
         colorChoice.setValue("BLACK");
 
         joinGameIdField.setPromptText("Wpisz gameId (np. 0, 1, 2...)");
+        replayGameIdField.setPromptText("Wpisz gameId (np. 0, 1, 2...)");
 
         buildLayout();
         wireActions();
@@ -87,14 +91,25 @@ public class MainMenuView {
         joinBox.setPadding(new Insets(12));
         joinBox.setStyle("-fx-border-color: #ccc; -fx-border-radius: 8; -fx-background-radius: 8;");
 
+        // sekcja odtwarzania
+        VBox replayBox = new VBox(
+                10,
+                new Label("Odtwórz grę"),
+                replayGameIdField,
+                replayBtn
+        );
+        replayBox.setPadding(new Insets(12));
+        replayBox.setStyle("-fx-border-color: #ccc; -fx-border-radius: 8; -fx-background-radius: 8;");
+
         statusLabel.setStyle("-fx-text-fill: #b00020;");
 
-        root.getChildren().addAll(title, serverBox, createBox, joinBox, statusLabel);
+        root.getChildren().addAll(title, serverBox, createBox, joinBox, replayBox, statusLabel);
     }
 
     private void wireActions() {
         createBtn.setOnAction(e -> createGame());
         joinBtn.setOnAction(e -> joinGame());
+        replayBtn.setOnAction(e -> replayGame());
     }
 
     private void setBusy(boolean busy) {
@@ -123,7 +138,7 @@ public class MainMenuView {
                 HttpClientHelper helper = new HttpClientHelper(baseUrl);
                 HttpClientHelper.GameInitResponse resp = helper.createGame(size, color);
 
-                GameSession session = new GameSession(helper, baseUrl, resp.gameId, resp.playerId);
+                GameSession session = new GameSession(helper, baseUrl, resp.gameId, resp.playerId, false, null);
 
                 Platform.runLater(() -> {
                     setBusy(false);
@@ -155,7 +170,7 @@ public class MainMenuView {
                 HttpClientHelper helper = new HttpClientHelper(baseUrl);
                 HttpClientHelper.JoinGameResponse resp = helper.joinGame(gameId);
 
-                GameSession session = new GameSession(helper, baseUrl, gameId, resp.playerId);
+                GameSession session = new GameSession(helper, baseUrl, gameId, resp.playerId, false, null);
 
                 Platform.runLater(() -> {
                     setBusy(false);
@@ -165,6 +180,40 @@ public class MainMenuView {
                 Platform.runLater(() -> {
                     setBusy(false);
                     statusLabel.setText("Nie udało się dołączyć: " + ex.getMessage());
+                });
+            }
+        });
+    }
+
+    private void replayGame() {
+        String baseUrl = serverUrlField.getText().trim();
+        String gameId = replayGameIdField.getText().trim();
+
+        if (gameId.isEmpty()) {
+            statusLabel.setText("Błąd: wpisz gameId.");
+            return;
+        }
+
+        statusLabel.setText("");
+        setBusy(true);
+
+        ioPool.submit(() -> {
+            try {
+                HttpClientHelper helper = new HttpClientHelper(baseUrl);
+                HttpClientHelper.ReplayGameResponse replayResp = helper.replayGame(gameId);
+                HttpClientHelper.GameInitResponse createResp = helper.createGame(replayResp.boardSize, "BLACK");
+                HttpClientHelper.JoinGameResponse joinResp = helper.joinGame(createResp.gameId);
+
+                GameSession session = new GameSession(helper, baseUrl, createResp.gameId, 1, true, replayResp);
+
+                Platform.runLater(() -> {
+                    setBusy(false);
+                    onSessionReady.accept(session);
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    setBusy(false);
+                    statusLabel.setText("Nie udało się odtworzyć: " + ex.getMessage());
                 });
             }
         });

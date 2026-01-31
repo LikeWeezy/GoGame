@@ -6,6 +6,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.io.IOException;
+import java.util.List;
 
 public class HttpClientHelper {
 
@@ -76,7 +77,44 @@ public class HttpClientHelper {
 
         return mapper.readValue(response.body(), JoinGameResponse.class);
     }
-     
+
+    // ODTWARZANIE GRY
+    public ReplayGameResponse replayGame(String gameId) throws IOException, InterruptedException {
+        String url = baseUrl + "/api/game/" + gameId + "/get_game_history";
+
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .GET()
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Nie udało się odtworzyć: " + response.body());
+        }
+
+        return mapper.readValue(response.body(), ReplayGameResponse.class);
+    }
+
+    // WZNAWIANIE GRY
+    public void resumeGame(String gameId) throws IOException, InterruptedException {
+        String url = baseUrl + "/api/game/" + gameId + "/resume";
+
+
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+        if (response.statusCode() != 200) {
+            throw new RuntimeException("Nie udało się wznowić: " + response.body());
+        }
+    }
+
     // POBIERANIE STATUSU
     public GameStatusResponse getStatus(String gameId) throws IOException, InterruptedException {
         String url = baseUrl + "/api/game/" + gameId + "/status";
@@ -210,6 +248,20 @@ public class HttpClientHelper {
     public static class JoinGameResponse {
         public int playerId; // 1 lub 2
         public JoinGameResponse() {}
+    }
+
+    // do odtwarzania gry
+    public static class ReplayGameResponse {
+        public int boardSize;
+        public int winnerId;
+        public List<ReplayedMove> moves;
+    }
+
+    public static class ReplayedMove {
+        public int playerId;
+        public String moveType;
+        public int x;
+        public int y;
     }
 
     // do odbierania pełnego stanu gry

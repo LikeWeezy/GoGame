@@ -12,6 +12,7 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -94,10 +95,16 @@ public class GameView {
     private volatile HttpClientHelper.GameStatusResponse lastStatus;
     private volatile boolean finishedShown = false;
 
+    private Iterator<HttpClientHelper.ReplayedMove> historyMoment;
+
     public GameView(GameSession session, ExecutorService ioPool, Runnable onBackToMenu) {
         this.session = session;
         this.ioPool = ioPool;
         this.onBackToMenu = onBackToMenu;
+        if(session.replay()) {
+            this.historyMoment = session.history().moves.iterator();
+
+        }
 
         buildLayout();
         wireActions();
@@ -302,15 +309,34 @@ public class GameView {
     private void refreshAsync() {
         ioPool.submit(() -> {
             try {
-                HttpClientHelper.GameStatusResponse st = session.client().getStatus(session.gameId());
-                Platform.runLater(() -> applyStatus(st));
-                if(pollNegotiations) {
-                    HttpClientHelper.GetNegotiationDetailsRequest gnd =
-                            new HttpClientHelper.GetNegotiationDetailsRequest(session.myPlayerId());
-                    HttpClientHelper.GetNegotiationDetailsResponse neg =
-                            session.client().askForNegotiation(session.gameId(), gnd);
-                    System.out.println("ok2");
-                    Platform.runLater(() -> applyEnemysNegotiationOffer(neg));
+                if(this.session.replay()) {
+                    if(this.historyMoment.hasNext()) {
+                        if(this.statusLabel.getText().equals("status: PAUSED")) {
+                            session.client().resumeGame(session.gameId());
+                        }
+                        HttpClientHelper.ReplayedMove replayedMove = this.historyMoment.next();
+                        session.client().sendMove(
+                                session.gameId(),
+                                replayedMove.playerId,
+                                replayedMove.moveType,
+                                replayedMove.x,
+                                replayedMove.y
+                        );
+                        HttpClientHelper.GameStatusResponse st = session.client().getStatus(session.gameId());
+                        Platform.runLater(() -> applyStatus(st));
+                    }
+                }
+                else {
+                    HttpClientHelper.GameStatusResponse st = session.client().getStatus(session.gameId());
+                    Platform.runLater(() -> applyStatus(st));
+                    if(pollNegotiations) {
+                        HttpClientHelper.GetNegotiationDetailsRequest gnd =
+                                new HttpClientHelper.GetNegotiationDetailsRequest(session.myPlayerId());
+                        HttpClientHelper.GetNegotiationDetailsResponse neg =
+                                session.client().askForNegotiation(session.gameId(), gnd);
+                        System.out.println("ok2");
+                        Platform.runLater(() -> applyEnemysNegotiationOffer(neg));
+                    }
                 }
             } catch (Exception ex) {
                 Platform.runLater(() -> {
@@ -384,17 +410,26 @@ public class GameView {
             }
         }
 
-        if ("FINISHED".equals(st.status) && !finishedShown) {
-            finishedShown = true;
-            pollNegotiations = false;
-            stopPolling();
-            showFinishedOverlay(st);
-        }
-        else if("PAUSED".equals(st.status) && !pollNegotiations) {
-            pollNegotiations = true;
+        if(this.session.replay()) {
+            if(!this.historyMoment.hasNext()) {
+                finishedShown = true;
+                stopPolling();
+                showFinishedOverlay(st);
+            }
         }
         else {
-            pollNegotiations = false;
+            if ("FINISHED".equals(st.status) && !finishedShown) {
+                finishedShown = true;
+                pollNegotiations = false;
+                stopPolling();
+                showFinishedOverlay(st);
+            }
+            else if("PAUSED".equals(st.status) && !pollNegotiations) {
+                pollNegotiations = true;
+            }
+            else {
+                pollNegotiations = false;
+            }
         }
     }
 
