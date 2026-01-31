@@ -7,13 +7,13 @@ import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
  */
 public class GameFactory {
     /** Variable to keep track of the next game ID to assign. */
-    private int idAutoincrement;
+    private long idAutoincrement;
 
     /**
      * Construct a new factory that produces games with IDs starting at a specified integer.
      * @param startingGameId Number from which to start giving IDs to new games
      */
-    public GameFactory(int startingGameId) {
+    public GameFactory(long startingGameId) {
         this.idAutoincrement = startingGameId;
     }
 

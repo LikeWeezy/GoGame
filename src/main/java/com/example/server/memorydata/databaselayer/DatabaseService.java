@@ -46,4 +46,8 @@ public class DatabaseService {
                 dbGame.getMoves().stream().map(PlayerMoveSubDTO::fromDBMove).toList()
         );
     }
+
+    public long getNumberOfGames() {
+        return gameRepository.count();
+    }
 }

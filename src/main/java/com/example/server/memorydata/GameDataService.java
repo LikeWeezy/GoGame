@@ -25,7 +25,7 @@ public class GameDataService {
      * Factory for producing new games with IDs that start with the given value
      * and automatically increment for each new one.
      */
-    private final GameFactory gameFactory = new GameFactory(0);
+    private GameFactory gameFactory = null;
 
     /**
      * Get data about the specified game.
@@ -42,7 +42,10 @@ public class GameDataService {
      * @param cng Request DTO containing the new game's parameters
      * @return Response DTO with the new game's ID and the ID of the requesting player.
      */
-    public CreateNewGameResponseDTO createNewGame(CreateNewGameDTO cng) {
+    public CreateNewGameResponseDTO createNewGame(CreateNewGameDTO cng, long numberOfGames) {
+        if(this.gameFactory == null) {
+            this.gameFactory = new GameFactory(numberOfGames);
+        }
         Game newGame = this.gameFactory.fromCreateNewGameRequest(cng);
         this.games.put(newGame.getGameId(), newGame);
         return new CreateNewGameResponseDTO(newGame.getGameId(), newGame.getCreatingPlayerId()); 

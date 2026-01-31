@@ -38,7 +38,7 @@ public class RouteController {
 
     @PostMapping("/new_game")
     public CreateNewGameResponseDTO createNewGame(@RequestBody CreateNewGameDTO cng) {
-        CreateNewGameResponseDTO cngr = this.gameDataService.createNewGame(cng);
+        CreateNewGameResponseDTO cngr = this.gameDataService.createNewGame(cng, databaseService.getNumberOfGames());
         databaseService.saveGame(cngr.gameId(), cng.boardSize());
         return cngr;
     }
