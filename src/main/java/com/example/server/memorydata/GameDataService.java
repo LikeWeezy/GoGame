@@ -12,6 +12,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.HashSet;
+import com.example.server.bot.SimpleBot;
+
 
 /**
  * The service responsible for storing every game's data, creating new games,
@@ -26,6 +30,10 @@ public class GameDataService {
      * and automatically increment for each new one.
      */
     private final GameFactory gameFactory = new GameFactory(0);
+
+    // kto botem
+    private final Map<String, Set<Integer>> botPlayers = new HashMap<>();
+
 
     /**
      * Get data about the specified game.
@@ -60,6 +68,27 @@ public class GameDataService {
         return this.games.get(gameId).join();
     }
 
+
+    public ResponseEntity<?> joinBot(String gameId) {
+        if(!this.games.containsKey(gameId)) {
+            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+        }
+        Game game = this.games.get(gameId);
+
+        ResponseEntity<?> joinResp = game.join();
+        if(!joinResp.getStatusCode().is2xxSuccessful()) return joinResp;
+
+        Object body = joinResp.getBody();
+        if(body instanceof JoinGameResponseDTO dto) {
+            this.botPlayers.computeIfAbsent(gameId, k -> new HashSet<>()).add(dto.playerId());
+        }
+
+        maybeRunBots(game);
+        return joinResp;
+    }
+
+
+
     /**
      * Make a move in a game.
      * @param gameId ID of the game
@@ -71,8 +100,14 @@ public class GameDataService {
         if(game == null) {
             return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
         }
-        return game.getStatus().handleMakeMove(game, mm);
+    
+        ResponseEntity<?> resp = game.getStatus().handleMakeMove(game, mm);
+        if(resp.getStatusCode().is2xxSuccessful()) {
+            maybeRunBots(game);
+        }
+        return resp;
     }
+    
 
     /**
      * Propose the scoring of a game. The game must be in the PAUSED state.
@@ -99,7 +134,12 @@ public class GameDataService {
         if(game == null) {
             return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
         }
-        return game.getStatus().handleResuming(game);
+        ResponseEntity<?> resp = game.getStatus().handleResuming(game);
+        if(resp.getStatusCode().is2xxSuccessful()) {
+            maybeRunBots(game);
+        }
+        return resp;
+
     }
 
     /**
@@ -115,4 +155,17 @@ public class GameDataService {
         if(game == null) return GetNegotiationDetailsResponseDTO.empty();
         else return game.getNegotiationDetails(gnd);
     }
+
+    private void maybeRunBots(Game game) {
+        Set<Integer> bots = this.botPlayers.get(game.getGameId());
+        if(bots == null || bots.isEmpty()) return;
+    
+        int safety = game.getBoardSize() * game.getBoardSize() + 5;
+        while(safety-- > 0
+                && game.getStatus() == com.example.server.memorydata.datatypes.GameStatus.PLAYING
+                && bots.contains(game.getTurn())) {
+            SimpleBot.playOneMove(game, game.getTurn());
+        }
+    }
+    
 }

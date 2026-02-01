@@ -77,6 +77,20 @@ public class HttpClientHelper {
         return mapper.readValue(response.body(), JoinGameResponse.class);
     }
      
+    public void joinBot(String gameId) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(baseUrl + "/api/game/" + gameId + "/join_bot"))
+                .POST(HttpRequest.BodyPublishers.noBody())
+                .build();
+    
+        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+        if (response.statusCode() / 100 != 2) {
+                throw new RuntimeException("joinBot failed: " + response.body());
+            }
+        }
+    
+
+
     // POBIERANIE STATUSU
     public GameStatusResponse getStatus(String gameId) throws IOException, InterruptedException {
         String url = baseUrl + "/api/game/" + gameId + "/status";

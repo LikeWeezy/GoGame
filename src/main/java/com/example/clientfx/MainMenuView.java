@@ -8,8 +8,15 @@ import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.scene.text.Font;
 
+import java.net.URI;
+import java.net.http.HttpResponse;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+
 
 public class MainMenuView {
 
@@ -28,6 +35,9 @@ public class MainMenuView {
     private final Label statusLabel = new Label("");
 
     private final Button createBtn = new Button("Nowa gra");
+    
+    private final Button createBotBtn = new Button("Nowa gra z botem");
+
     private final Button joinBtn = new Button("Dołącz do gry");
 
     public MainMenuView(ExecutorService ioPool, Consumer<GameSession> onSessionReady) {
@@ -71,10 +81,11 @@ public class MainMenuView {
         createGrid.add(colorChoice, 1, 1);
 
         VBox createBox = new VBox(10,
-                new Label("Nowa gra"),
-                createGrid,
-                createBtn
+            new Label("Nowa gra"),
+            createGrid,
+            new HBox(10, createBtn, createBotBtn)
         );
+    
         createBox.setPadding(new Insets(12));
         createBox.setStyle("-fx-border-color: #ccc; -fx-border-radius: 8; -fx-background-radius: 8;");
 
@@ -94,13 +105,17 @@ public class MainMenuView {
 
     private void wireActions() {
         createBtn.setOnAction(e -> createGame());
+        createBotBtn.setOnAction(e -> createGameWithBot());
         joinBtn.setOnAction(e -> joinGame());
     }
+    
 
     private void setBusy(boolean busy) {
         createBtn.setDisable(busy);
+        createBotBtn.setDisable(busy);
         joinBtn.setDisable(busy);
     }
+    
 
     private void createGame() {
         String baseUrl = serverUrlField.getText().trim();
@@ -138,6 +153,46 @@ public class MainMenuView {
         });
     }
 
+    private void createGameWithBot() {
+        String baseUrl = serverUrlField.getText().trim();
+        String color = colorChoice.getValue();
+        int size;
+    
+        try {
+            size = Integer.parseInt(boardSizeField.getText().trim());
+            if (size < 2 || size > 50) throw new NumberFormatException();
+        } catch (NumberFormatException ex) {
+            statusLabel.setText("Błąd: rozmiar planszy musi być liczbą (sensownie: 9/13/19).");
+            return;
+        }
+    
+        statusLabel.setText("");
+        setBusy(true);
+    
+        ioPool.submit(() -> {
+            try {
+                HttpClientHelper helper = new HttpClientHelper(baseUrl);
+    
+                HttpClientHelper.GameInitResponse resp = helper.createGame(size, color);
+    
+                helper.joinBot(resp.gameId);
+    
+                GameSession session = new GameSession(helper, baseUrl, resp.gameId, resp.playerId);
+    
+                Platform.runLater(() -> {
+                    setBusy(false);
+                    onSessionReady.accept(session);
+                });
+            } catch (Exception ex) {
+                Platform.runLater(() -> {
+                    setBusy(false);
+                    statusLabel.setText("Nie udało się utworzyć gry z botem: " + ex.getMessage());
+                });
+            }
+        });
+    }
+    
+
     private void joinGame() {
         String baseUrl = serverUrlField.getText().trim();
         String gameId = joinGameIdField.getText().trim();
@@ -169,4 +224,5 @@ public class MainMenuView {
             }
         });
     }
+
 }

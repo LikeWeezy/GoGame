@@ -61,4 +61,9 @@ public class RouteController {
                                                                   @RequestBody GetNegotiationDetailsDTO gnd) {
         return this.gameDataService.getNegotiationDetails(gameId, gnd);
     }
+
+    @PostMapping("/game/{gameId}/join_bot")
+    public ResponseEntity<?> joinBot(@PathVariable("gameId") String gameId) {
+        return this.gameDataService.joinBot(gameId);
+    }
 }
