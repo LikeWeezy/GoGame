@@ -10,10 +10,6 @@ import javafx.scene.text.Font;
 
 import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 
 
 public class MainMenuView {
@@ -190,7 +186,7 @@ public class MainMenuView {
 
                 helper.joinBot(resp.gameId);
 
-                GameSession session = new GameSession(helper, baseUrl, resp.gameId, resp.playerId);
+                GameSession session = new GameSession(helper, baseUrl, resp.gameId, resp.playerId, false, null);
 
                 Platform.runLater(() -> {
                     setBusy(false);

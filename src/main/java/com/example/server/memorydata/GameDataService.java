@@ -2,6 +2,7 @@ package com.example.server.memorydata;
 
 import com.example.server.memorydata.datatypes.Game;
 import com.example.server.memorydata.datatypes.GameFactory;
+import com.example.server.memorydata.datatypes.MovesToSave;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
 import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
@@ -10,10 +11,8 @@ import com.example.server.memorydata.datatypes.dtos.response.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.HashSet;
+import java.util.*;
+
 import com.example.server.bot.SimpleBot;
 
 
@@ -98,17 +97,20 @@ public class GameDataService {
      * @param mm Request DTO containing data about the move
      * @return Response DTO that is empty or contains error information.
      */
-    public ResponseEntity<?> makeMove(String gameId, MakeMoveDTO mm) {
+    public MovesToSave makeMove(String gameId, MakeMoveDTO mm) {
         Game game = this.games.getOrDefault(gameId, null);
         if(game == null) {
-            return ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID"));
+            return new MovesToSave(ResponseEntity.badRequest().body(new ErrorDTO("Brak gry o tym ID")), new LinkedList<>());
         }
     
         ResponseEntity<?> resp = game.getStatus().handleMakeMove(game, mm);
+        List<MakeMoveDTO> goodMoves = new LinkedList<>();
         if(resp.getStatusCode().is2xxSuccessful()) {
-            maybeRunBots(game);
+            goodMoves.add(mm);
+            List<MakeMoveDTO> botMoves = maybeRunBots(game);
+            goodMoves.addAll(botMoves);
         }
-        return resp;
+        return new MovesToSave(resp, goodMoves);
     }
     
 
@@ -159,16 +161,18 @@ public class GameDataService {
         else return game.getNegotiationDetails(gnd);
     }
 
-    private void maybeRunBots(Game game) {
+    private List<MakeMoveDTO> maybeRunBots(Game game) {
         Set<Integer> bots = this.botPlayers.get(game.getGameId());
-        if(bots == null || bots.isEmpty()) return;
+        if(bots == null || bots.isEmpty()) return new LinkedList<>();
     
         int safety = game.getBoardSize() * game.getBoardSize() + 5;
+        List<MakeMoveDTO> botMoves = new LinkedList<>();
         while(safety-- > 0
                 && game.getStatus() == com.example.server.memorydata.datatypes.GameStatus.PLAYING
                 && bots.contains(game.getTurn())) {
-            SimpleBot.playOneMove(game, game.getTurn());
+            botMoves.add(SimpleBot.playOneMove(game, game.getTurn()));
         }
+        return botMoves;
     }
     
 }

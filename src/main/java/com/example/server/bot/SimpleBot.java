@@ -1,6 +1,7 @@
 package com.example.server.bot;
 
 import com.example.server.memorydata.datatypes.Game;
+import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,14 +19,14 @@ public final class SimpleBot {
 
     private SimpleBot() {}
 
-    public static void playOneMove(Game game, int playerId) {
+    public static MakeMoveDTO playOneMove(Game game, int playerId) {
         int size = game.getBoardSize();
         int[][] board = game.deepCloneBoardState();
 
         // 1) pusta plansza -> srodek
         if (isEmpty(board)) {
             int c = size / 2;
-            if (game.placePiece(c, c, playerId)) return;
+            if (game.placePiece(c, c, playerId)) return new MakeMoveDTO(playerId, "PLACE", c, c);
         }
 
         // 2) kandydaci oceniani prosta heurystyka
@@ -44,11 +45,12 @@ public final class SimpleBot {
         candidates.sort((a, b) -> Integer.compare(b[0], a[0]));
 
         for (int[] c : candidates) {
-            if (game.placePiece(c[1], c[2], playerId)) return;
+            if (game.placePiece(c[1], c[2], playerId)) return new MakeMoveDTO(playerId, "PLACE", c[1], c[2]);
         }
 
         // 3) jak nic nie działa -> PASS
         game.pass();
+        return new MakeMoveDTO(playerId, "PASS", -1, -1);
     }
 
     private static boolean isEmpty(int[][] board) {

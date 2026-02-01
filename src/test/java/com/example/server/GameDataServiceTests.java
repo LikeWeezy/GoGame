@@ -1,6 +1,7 @@
 package com.example.server;
 
 import com.example.server.memorydata.GameDataService;
+import com.example.server.memorydata.datatypes.MovesToSave;
 import com.example.server.memorydata.datatypes.dtos.request.*;
 import com.example.server.memorydata.datatypes.dtos.response.*;
 import org.junit.jupiter.api.Test;
@@ -16,7 +17,7 @@ public class GameDataServiceTests {
     public void testCreatingNewGames() {
         GameDataService gds = new GameDataService();
         CreateNewGameDTO cng1 = new CreateNewGameDTO(19, "BLACK");
-        CreateNewGameResponseDTO createNewGameResponse1 = gds.createNewGame(cng1);
+        CreateNewGameResponseDTO createNewGameResponse1 = gds.createNewGame(cng1, 0);
         CreateNewGameResponseDTO goodCreateNewGameResponse1 = new CreateNewGameResponseDTO("0", 1);
         GetGameDataResponseDTO getGameDataResponse1 = gds.getStateOfBoard("0");
         GetGameDataResponseDTO goodGetGameDataResponse1 = new GetGameDataResponseDTO("0", 19, createEmptyBoard(19), 1, 0, 0, "CREATING", 0);
@@ -25,7 +26,7 @@ public class GameDataServiceTests {
         assertTwoGetGameDataResponsesEqual(goodGetGameDataResponse1, getGameDataResponse1);
 
         CreateNewGameDTO cng2 = new CreateNewGameDTO(9, "WHITE");
-        CreateNewGameResponseDTO createNewGameResponse2 = gds.createNewGame(cng2);
+        CreateNewGameResponseDTO createNewGameResponse2 = gds.createNewGame(cng2, 1);
         CreateNewGameResponseDTO goodCreateNewGameResponse2 = new CreateNewGameResponseDTO("1", 2);
         GetGameDataResponseDTO getGameDataResponse2 = gds.getStateOfBoard("1");
         GetGameDataResponseDTO goodGetGameDataResponse2 = new GetGameDataResponseDTO("1", 9, createEmptyBoard(9), 1, 0, 0, "CREATING", 0);
@@ -40,7 +41,7 @@ public class GameDataServiceTests {
         GameDataService gds = new GameDataService();
 
         // BLACK creates a game, WHITE tries to join. Should succeed.
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         ResponseEntity<?> joinGameResponse1 = gds.joinGame("0");
         assertInstanceOf(JoinGameResponseDTO.class, joinGameResponse1.getBody());
 
@@ -50,7 +51,7 @@ public class GameDataServiceTests {
         assertEquals("PLAYING", gds.getStateOfBoard("0").status());
 
         // WHITE creates a game, BLACK tries to join. Should succeed.
-        gds.createNewGame(new CreateNewGameDTO(13, "WHITE"));
+        gds.createNewGame(new CreateNewGameDTO(13, "WHITE"), 1);
         ResponseEntity<?> joinGameResponse2 = gds.joinGame("1");
         assertInstanceOf(JoinGameResponseDTO.class, joinGameResponse2.getBody());
 
@@ -72,7 +73,7 @@ public class GameDataServiceTests {
     @Test
     public void testPlacingStones() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(9, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(9, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 4, 4),
@@ -81,7 +82,8 @@ public class GameDataServiceTests {
                 new MakeMoveDTO(2, "PLACE", 5, 5),
         };
         for(MakeMoveDTO mm : moves) {
-            ResponseEntity<?> makeMoveResponse = gds.makeMove("0", mm);
+            MovesToSave movesToSave = gds.makeMove("0", mm);
+            ResponseEntity<?> makeMoveResponse = movesToSave.resp();
             assertEquals(200, makeMoveResponse.getStatusCode().value());
         }
         int[][] goodStateBoard = createEmptyBoard(9);
@@ -96,12 +98,13 @@ public class GameDataServiceTests {
     @Test
     public void testPlacingStoneOnOccupiedPosition() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(13, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(13, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO move1 = new MakeMoveDTO(1, "PLACE", 3, 3);
         MakeMoveDTO move2 = new MakeMoveDTO(2, "PLACE", 3, 3);
         gds.makeMove("0", move1);
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", move2);
+        MovesToSave movesToSave = gds.makeMove("0", move2);
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         assertInstanceOf(ErrorDTO.class, makeMoveResponse.getBody());
     }
 
@@ -109,12 +112,13 @@ public class GameDataServiceTests {
     @Test
     public void testPlacingStoneOutOfTurn() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "WHITE"));
+        gds.createNewGame(new CreateNewGameDTO(19, "WHITE"), 0);
         gds.joinGame("0");
         MakeMoveDTO move1 = new MakeMoveDTO(1, "PLACE", 3, 3);
         MakeMoveDTO move2 = new MakeMoveDTO(1, "PLACE", 7, 7);
         gds.makeMove("0", move1);
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", move2);
+        MovesToSave movesToSave = gds.makeMove("0", move2);
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         assertInstanceOf(ErrorDTO.class, makeMoveResponse.getBody());
     }
 
@@ -122,7 +126,7 @@ public class GameDataServiceTests {
     @Test
     public void testCapturingStones() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 4, 4),
@@ -145,7 +149,7 @@ public class GameDataServiceTests {
     @Test
     public void testPlacingStoneOnPositionWithNoLiberties() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 4, 4),
@@ -159,7 +163,8 @@ public class GameDataServiceTests {
         for(MakeMoveDTO mm : moves) {
             gds.makeMove("0", mm);
         }
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", new MakeMoveDTO(2, "PLACE", 3, 4));
+        MovesToSave movesToSave = gds.makeMove("0", new MakeMoveDTO(2, "PLACE", 3, 4));
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         assertInstanceOf(ErrorDTO.class, makeMoveResponse.getBody());
     }
 
@@ -170,7 +175,7 @@ public class GameDataServiceTests {
     @Test
     public void testKamikazeCapture() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 3, 1),
@@ -193,7 +198,8 @@ public class GameDataServiceTests {
         for(MakeMoveDTO mm : moves) {
             gds.makeMove("0", mm);
         }
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 3, 3));
+        MovesToSave movesToSave = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 3, 3));
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         assertEquals(200, makeMoveResponse.getStatusCode().value());
         GetGameDataResponseDTO gameData = gds.getStateOfBoard("0");
         assertEquals(4, gameData.capturedWhite());
@@ -206,7 +212,7 @@ public class GameDataServiceTests {
     @Test
     public void testGroupLiberties() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 2, 2),
@@ -235,7 +241,8 @@ public class GameDataServiceTests {
         GetGameDataResponseDTO gameData = gds.getStateOfBoard("0");
         assertEquals(0, gameData.capturedWhite());
 
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 6, 2));
+        MovesToSave movesToSave = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 6, 2));
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         /* Now they are indeed surrounded and should get captured. */
         assertEquals(200, makeMoveResponse.getStatusCode().value());
         gameData = gds.getStateOfBoard("0");
@@ -246,7 +253,7 @@ public class GameDataServiceTests {
     @Test
     public void testKo() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 2, 1),
@@ -267,13 +274,15 @@ public class GameDataServiceTests {
         assertEquals(0, gameData.capturedWhite());
 
         /* White captures and succeeds */
-        ResponseEntity<?> makeMoveResponse = gds.makeMove("0", new MakeMoveDTO(2, "PLACE", 2, 2));
+        MovesToSave movesToSave = gds.makeMove("0", new MakeMoveDTO(2, "PLACE", 2, 2));
+        ResponseEntity<?> makeMoveResponse = movesToSave.resp();
         assertEquals(200, makeMoveResponse.getStatusCode().value());
         gameData = gds.getStateOfBoard("0");
         assertEquals(1, gameData.capturedBlack());
 
         /* Black tries to capture back but fails */
-        makeMoveResponse = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 3, 2));
+        movesToSave = gds.makeMove("0", new MakeMoveDTO(1, "PLACE", 3, 2));
+        makeMoveResponse = movesToSave.resp();
         assertInstanceOf(ErrorDTO.class, makeMoveResponse.getBody());
         gameData = gds.getStateOfBoard("0");
         assertEquals(0, gameData.capturedWhite());
@@ -283,7 +292,7 @@ public class GameDataServiceTests {
     @Test
     public void testPausingAfterTwoBackToBackPasses() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PASS", -1, -1),
@@ -300,7 +309,7 @@ public class GameDataServiceTests {
     @Test
     public void testResuming() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PASS", -1, -1),
@@ -318,7 +327,7 @@ public class GameDataServiceTests {
     @Test
     public void testNegotiationAgreement() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PLACE", 2, 2),
@@ -363,7 +372,7 @@ public class GameDataServiceTests {
     @Test
     public void testNegotiationDisagreement() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PASS", -1, -1),
@@ -384,7 +393,7 @@ public class GameDataServiceTests {
     @Test
     public void testGettingOpponentsNegotiation() {
         GameDataService gds = new GameDataService();
-        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"));
+        gds.createNewGame(new CreateNewGameDTO(19, "BLACK"), 0);
         gds.joinGame("0");
         MakeMoveDTO[] moves = {
                 new MakeMoveDTO(1, "PASS", -1, -1),

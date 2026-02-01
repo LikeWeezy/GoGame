@@ -2,6 +2,7 @@ package com.example.server;
 
 import com.example.server.memorydata.GameDataService;
 import com.example.server.memorydata.databaselayer.DatabaseService;
+import com.example.server.memorydata.datatypes.MovesToSave;
 import com.example.server.memorydata.datatypes.dtos.request.CreateNewGameDTO;
 import com.example.server.memorydata.datatypes.dtos.request.GetNegotiationDetailsDTO;
 import com.example.server.memorydata.datatypes.dtos.request.MakeMoveDTO;
@@ -50,9 +51,13 @@ public class RouteController {
 
     @PostMapping("/game/{gameId}/move")
     public ResponseEntity<?> makeMove(@PathVariable("gameId") String gameId, @RequestBody MakeMoveDTO mm) {
-        ResponseEntity<?> responseEntity = this.gameDataService.makeMove(gameId, mm);
-        if(responseEntity.getStatusCode().value() == 200) {
-            databaseService.saveMove(gameId, mm);
+        MovesToSave movesToSave = this.gameDataService.makeMove(gameId, mm);
+        ResponseEntity<?> responseEntity = movesToSave.resp();
+
+        if(responseEntity.getStatusCode().is2xxSuccessful()) {
+            for(MakeMoveDTO move : movesToSave.moves()) {
+                databaseService.saveMove(gameId, move);
+            }
         }
         return responseEntity;
     }
